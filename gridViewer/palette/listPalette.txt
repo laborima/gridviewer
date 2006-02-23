@@ -1,0 +1,13 @@
+palette_black_white_2.txt
+palette_black_white.txt
+palette_blue_orange.txt
+palette_blue_red_2.txt
+palette_blue_red.txt
+palette_blue_white.txt
+palette_courant.txt
+palette_eke.txt
+palette_gradient.txt
+palette_micom.txt
+palette_red_white.txt
+palette_sla.txt
+palette_white_green.txt

@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Class-Path: ./lib/swt/swt.jar ./lib/netcdf/toolsUI-2.2.10.jar ./ 
+Main-Class: ThreeD/threeDView
+
