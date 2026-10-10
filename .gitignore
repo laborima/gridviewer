@@ -1,0 +1,15 @@
+target/
+dist/
+*.class
+*.log
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+.DS_Store
+# Sample data is downloaded, never committed
+*.nc
+*.nc4
+!legacy/**
