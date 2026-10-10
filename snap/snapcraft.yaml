@@ -1,0 +1,44 @@
+name: gridviewer
+title: Grid Viewer
+base: core24
+version: '2.0.0'
+summary: Fast viewer for large NetCDF ocean and climate model grids
+description: |
+  Grid Viewer opens NetCDF files and OPeNDAP datasets far larger than memory by
+  reading only the grid points that fit on screen, and reading more as you zoom.
+  Maps, vertical sections along any row or column, and a rotating 3D globe, for
+  ocean and climate model outputs (NEMO, CMEMS, WOA, HYCOM, ERA5...).
+license: Apache-2.0
+website: https://github.com/laborima/gridviewer
+icon: packaging/linux/gridviewer.png
+grade: stable
+confinement: strict
+
+platforms:
+  amd64:
+
+apps:
+  gridviewer:
+    command: bin/gridviewer
+    desktop: gui/gridviewer.desktop
+    common-id: io.github.laborima.gridviewer
+    extensions: [gnome]
+    plugs:
+      - home
+      - removable-media
+      - network
+      - opengl
+
+parts:
+  gridviewer:
+    # The self-contained app image built by `packaging/package.sh archive`, copied here by
+    # packaging/snap.sh (its single top-level directory is stripped on extraction).
+    plugin: dump
+    source: snap/local/gridviewer-linux-x64.tar.gz
+    source-type: tar
+  desktop:
+    plugin: dump
+    source: snap/local
+    stage: [gui/gridviewer.desktop]
+    organize:
+      gridviewer.desktop: gui/gridviewer.desktop

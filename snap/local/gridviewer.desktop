@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Grid Viewer
+GenericName=NetCDF Viewer
+Comment=Fast viewer for large NetCDF ocean and climate model grids
+Exec=gridviewer %f
+Icon=${SNAP}/meta/gui/icon.png
+Terminal=false
+Type=Application
+Categories=Science;Education;
+Keywords=netcdf;ocean;climate;model;grid;opendap;nemo;
+MimeType=application/x-netcdf;

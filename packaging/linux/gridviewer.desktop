@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Grid Viewer
+GenericName=NetCDF Viewer
+Comment=APPLICATION_DESCRIPTION
+Exec=APPLICATION_LAUNCHER %f
+Icon=APPLICATION_ICON
+Terminal=false
+Type=Application
+Categories=DEPLOY_BUNDLE_CATEGORY
+Keywords=netcdf;ocean;climate;model;grid;opendap;nemo;
+StartupWMClass=io.github.laborima.gridviewer.Main
+DESKTOP_MIMES

@@ -1,0 +1,114 @@
+name: Release
+
+# Push a tag such as v2.0.0 to build every package and publish a GitHub release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Install rpmbuild
+        run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Archive, deb and rpm
+        run: packaging/package.sh archive deb rpm
+      - name: AppImage
+        run: packaging/appimage.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+
+  snap:
+    needs: linux
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux
+          path: dist
+      - name: Prepare
+        run: |
+          VERSION=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' pom.xml | head -1); VERSION=${VERSION%%-*}
+          cp "dist/gridviewer-$VERSION-linux-x64.tar.gz" snap/local/gridviewer-linux-x64.tar.gz
+          sed -i "s/^version: .*/version: '$VERSION'/" snap/snapcraft.yaml
+      - uses: snapcore/action-build@v1
+        id: snap
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snap
+          path: ${{ steps.snap.outputs.snap }}
+
+  windows:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Install WiX
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          wix extension add -g WixToolset.Util.wixext/5.0.2
+          wix extension add -g WixToolset.UI.wixext/5.0.2
+      - name: Archive and msi
+        run: packaging/package.sh archive msi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*
+
+  macos:
+    strategy:
+      matrix:
+        runner: [macos-14, macos-13]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Archive and dmg
+        run: |
+          packaging/package.sh archive dmg
+          ARCH=$(uname -m | sed 's/x86_64/x64/; s/arm64/aarch64/')
+          for f in dist/*.dmg; do mv "$f" "${f%.dmg}-$ARCH.dmg"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.runner }}
+          path: dist/*
+
+  publish:
+    needs: [linux, snap, windows, macos]
+    runs-on: ubuntu-24.04
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        run: cd dist && sha256sum * > SHA256SUMS.txt
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
