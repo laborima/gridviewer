@@ -6,7 +6,7 @@
 
   <groupId>io.github.laborima</groupId>
   <artifactId>gridviewer</artifactId>
-  <version>2.0.0-SNAPSHOT</version>
+  <version>2.0.0</version>
   <name>Grid Viewer</name>
   <description>Fast viewer for large NetCDF ocean and climate model grids</description>
   <url>https://github.com/laborima/gridviewer</url>
