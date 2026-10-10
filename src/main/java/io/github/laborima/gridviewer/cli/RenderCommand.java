@@ -3,6 +3,7 @@ package io.github.laborima.gridviewer.cli;
 import java.awt.image.BufferedImage;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import javax.imageio.ImageIO;
@@ -15,6 +16,7 @@ import io.github.laborima.gridviewer.data.Stride;
 import io.github.laborima.gridviewer.data.Window;
 import io.github.laborima.gridviewer.render.ColorMap;
 import io.github.laborima.gridviewer.render.ColorMaps;
+import io.github.laborima.gridviewer.render.Formats;
 import io.github.laborima.gridviewer.render.StaticMap;
 import io.github.laborima.gridviewer.render.ValueRange;
 
@@ -28,8 +30,8 @@ public final class RenderCommand {
             Usage: gridviewer render FILE [options] -o OUT.png
 
               -v, --var NAME        variable (default: the first gridded variable)
-              -t, --time N          time index (default 0)
-              -z, --level N         level index (default 0, usually the surface)
+              -t, --time N          time index (default 0; -1 is the latest)
+              -z, --level N         level index (default 0, usually the surface; -1 is the deepest)
               -W, --width PX        image width in pixels (default 1600)
                   --window I0,J0,I1,J1  grid index window to draw (default: whole grid)
               -p, --palette NAME    colour map (see 'gridviewer palettes')
@@ -57,8 +59,9 @@ public final class RenderCommand {
                 out.println("No such gridded variable. Try: gridviewer info " + a.positionals().getFirst());
                 return 1;
             }
-            int t = a.getInt("time", 0);
-            int z = a.getInt("level", 0);
+            // Negative indices count from the end: -t -1 is the latest time step.
+            int t = Math.floorMod(a.getInt("time", 0), v.times());
+            int z = Math.floorMod(a.getInt("level", 0), v.levels());
             Window window = a.has("window") ? parseWindow(a.get("window", "")) : Window.full(v.nx(), v.ny());
             window = window.clamp(v.nx(), v.ny());
             int width = a.getInt("width", 1600);
@@ -79,8 +82,8 @@ public final class RenderCommand {
             ImageIO.write(img, "png", output.toFile());
 
             long full = window.cells() * Float.BYTES;
-            out.printf("%s: read %,d of %,d points (stride %d), %s instead of %s, in %d ms -> %s%n",
-                    v.name(), slice.values().length, window.cells(), stride, bytes(slice.bytes()), bytes(full),
+            out.printf(Locale.ROOT, "%s: read %,d of %,d points (stride %d), %s instead of %s, in %d ms -> %s%n",
+                    v.name(), slice.values().length, window.cells(), stride, Formats.bytes(slice.bytes()), Formats.bytes(full),
                     slice.readNanos() / 1_000_000, output);
             return 0;
         }
@@ -95,16 +98,6 @@ public final class RenderCommand {
             sb.append(sb.isEmpty() ? "" : "  ·  ").append(v.levelAxis().label(z));
         }
         return sb.isEmpty() ? v.name() : sb.toString();
-    }
-
-    static String bytes(long b) {
-        if (b < 1 << 20) {
-            return String.format("%.1f kB", b / 1024.0);
-        }
-        if (b < 1L << 30) {
-            return String.format("%.1f MB", b / (1024.0 * 1024));
-        }
-        return String.format("%.2f GB", b / (1024.0 * 1024 * 1024));
     }
 
     private static Window parseWindow(String s) {

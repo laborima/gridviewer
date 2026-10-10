@@ -7,6 +7,7 @@ import io.github.laborima.gridviewer.data.GridDataset;
 import io.github.laborima.gridviewer.data.GridVariable;
 import io.github.laborima.gridviewer.render.ColorMap;
 import io.github.laborima.gridviewer.render.ColorMaps;
+import io.github.laborima.gridviewer.render.Formats;
 
 /**
  * {@code gridviewer info} and {@code gridviewer palettes}.
@@ -24,14 +25,14 @@ public final class InfoCommand {
         try (GridDataset ds = GridDataset.open(argv[0])) {
             out.println(ds.location());
             long size = ds.fileSize();
-            out.println("  " + ds.fileType() + (size >= 0 ? ", " + RenderCommand.bytes(size) + " on disk" : ""));
+            out.println("  " + ds.fileType() + (size >= 0 ? ", " + Formats.bytes(size) + " on disk" : ""));
             out.println();
             if (ds.variables().isEmpty()) {
                 out.println("  No gridded variable (rank >= 2) in this file.");
             }
             for (GridVariable v : ds.variables()) {
                 out.printf("  %-14s %s%n", v.name(), v.longName() + (v.units().isEmpty() ? "" : " [" + v.units() + "]"));
-                out.printf("  %-14s %s, %s as floats%n", "", v.dimensionsString(), RenderCommand.bytes(v.fullSizeBytes()));
+                out.printf("  %-14s %s, %s as floats%n", "", v.dimensionsString(), Formats.bytes(v.fullSizeBytes()));
                 describeAxis(out, "levels", v.levelAxis());
                 describeAxis(out, "times", v.timeAxis());
                 out.printf("  %-14s %s%n", "", v.isRegularLonLat() ? "regular lon/lat grid"

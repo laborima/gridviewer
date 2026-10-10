@@ -42,6 +42,8 @@ public final class Session {
     private final StringProperty readInfo = new SimpleStringProperty(this, "readInfo", "");
     private final IntegerProperty pendingReads = new SimpleIntegerProperty(this, "pendingReads");
 
+    private final java.util.Set<String> loading = new java.util.HashSet<>();
+
     /** Set when a new variable is shown, so the first slice read sets the colour range. */
     boolean autoRangePending;
 
@@ -109,8 +111,19 @@ public final class Session {
         return readInfo;
     }
 
+    /** Number of reads in flight, all views together. */
     public IntegerProperty pendingReadsProperty() {
         return pendingReads;
+    }
+
+    /** Marks a named read (base, detail, globe...) as in flight or done. */
+    public void loading(String what, boolean inFlight) {
+        if (inFlight) {
+            loading.add(what);
+        } else {
+            loading.remove(what);
+        }
+        pendingReads.set(loading.size());
     }
 
     /** North up: grids stored south to north are drawn with their last row at the top. */
@@ -121,9 +134,14 @@ public final class Session {
 
     /** Shows a variable, choosing a colour map and asking for an automatic range. */
     public void show(GridVariable v) {
+        show(v, 0, 0);
+    }
+
+    /** Shows a variable at a given time step and level, clamped to what it has. */
+    public void show(GridVariable v, int timeIndex, int levelIndex) {
         section.set(null);
-        time.set(0);
-        level.set(0);
+        time.set(v == null ? 0 : Math.clamp(timeIndex, 0, v.times() - 1));
+        level.set(v == null ? 0 : Math.clamp(levelIndex, 0, v.levels() - 1));
         if (v != null) {
             colorMap.set(ColorMaps.suggest(v.name(), v.longName(), v.units()));
             maskZeros.set(!v.declaresMissingValues() && v.hasCurvilinearCoordinates());

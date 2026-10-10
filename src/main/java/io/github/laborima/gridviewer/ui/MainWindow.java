@@ -32,7 +32,6 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Separator;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.Slider;
-import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
@@ -76,6 +75,8 @@ import io.github.laborima.gridviewer.render.ValueRange;
 public final class MainWindow extends BorderPane {
 
     private static final int MAX_RECENT = 10;
+    /** A public OPeNDAP dataset far larger than any disk, to show what the viewer does. */
+    static final String SAMPLE_URL = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/jplMURSST41";
 
     private final Stage stage;
     private final Session session = new Session();
@@ -109,6 +110,8 @@ public final class MainWindow extends BorderPane {
 
     /** Called once the first slice of a newly opened variable is on screen. */
     private Consumer<MainWindow> onFirstImage;
+    private int initialTime;
+    private int initialLevel;
 
     public MainWindow(Stage stage) {
         this.stage = stage;
@@ -119,8 +122,8 @@ public final class MainWindow extends BorderPane {
         setBottom(statusBar());
         installDragAndDrop();
         session.variableProperty().addListener((o, a, v) -> variableChanged(v));
-        session.levelProperty().addListener((o, a, z) -> levelSlider.setValue(z.intValue()));
-        session.timeProperty().addListener((o, a, t) -> timeSlider.setValue(t.intValue()));
+        session.levelProperty().addListener((o, a, z) -> syncSlider(levelSlider, z.intValue()));
+        session.timeProperty().addListener((o, a, t) -> syncSlider(timeSlider, t.intValue()));
         session.datasetProperty().addListener((o, a, ds) -> datasetChanged(ds));
         map.setOnSection(line -> {
             session.sectionProperty().set(line);
@@ -177,13 +180,20 @@ public final class MainWindow extends BorderPane {
      * Opens a file or URL in the background, then shows {@code variable} (or the first one).
      */
     public void open(String location, String variable) {
+        open(location, variable, 0, 0);
+    }
+
+    /** Opens a file and shows {@code variable} at a time step and level (negative: from the end). */
+    public void open(String location, String variable, int time, int level) {
+        initialTime = time;
+        initialLevel = level;
         session.readInfoProperty().set("Opening " + location + "…");
-        session.pendingReadsProperty().set(session.pendingReadsProperty().get() + 1);
+        session.loading("open", true);
         Thread.ofVirtual().name("open").start(() -> {
             try {
                 GridDataset ds = GridDataset.open(location);
                 Platform.runLater(() -> {
-                    session.pendingReadsProperty().set(Math.max(0, session.pendingReadsProperty().get() - 1));
+                    session.loading("open", false);
                     GridDataset old = session.dataset();
                     session.datasetProperty().set(ds);
                     if (old != null) {
@@ -199,7 +209,7 @@ public final class MainWindow extends BorderPane {
                 });
             } catch (IOException | RuntimeException e) {
                 Platform.runLater(() -> {
-                    session.pendingReadsProperty().set(Math.max(0, session.pendingReadsProperty().get() - 1));
+                    session.loading("open", false);
                     session.readInfoProperty().set("");
                     error("Cannot open " + location, e.getMessage() == null ? e.toString() : e.getMessage());
                 });
@@ -289,8 +299,8 @@ public final class MainWindow extends BorderPane {
         }
         attributes.setText(v.attributesString());
         attributes.positionCaret(0);
-        configureSlider(levelSlider, v.levels());
-        configureSlider(timeSlider, v.times());
+        configureSlider(levelSlider, v.levels(), session.levelProperty().get());
+        configureSlider(timeSlider, v.times(), session.timeProperty().get());
         updateNavigationLabels();
         if (v.levels() < 2 && tabs.getSelectionModel().getSelectedItem() == sectionTab) {
             tabs.getSelectionModel().select(mapTab);
@@ -301,6 +311,21 @@ public final class MainWindow extends BorderPane {
             waitForImage(callback);
         }
         updateTitle();
+    }
+
+    /** Runs {@code callback} once no read has been pending for a little while. */
+    public void whenIdle(Runnable callback) {
+        Timeline poll = new Timeline();
+        int[] quiet = {0};
+        poll.getKeyFrames().add(new KeyFrame(Duration.millis(100), e -> {
+            quiet[0] = session.pendingReadsProperty().get() == 0 ? quiet[0] + 1 : 0;
+            if (quiet[0] >= 8) {
+                poll.stop();
+                callback.run();
+            }
+        }));
+        poll.setCycleCount(Timeline.INDEFINITE);
+        poll.play();
     }
 
     private void waitForImage(Consumer<MainWindow> callback) {
@@ -316,10 +341,18 @@ public final class MainWindow extends BorderPane {
         poll.play();
     }
 
-    private static void configureSlider(Slider s, int n) {
+    /** Moves a slider to a value set elsewhere, widening it first so the value is not clamped. */
+    private static void syncSlider(Slider s, int value) {
+        if (value > s.getMax()) {
+            s.setMax(value);
+        }
+        s.setValue(value);
+    }
+
+    private static void configureSlider(Slider s, int n, int value) {
         s.setMin(0);
         s.setMax(Math.max(0, n - 1));
-        s.setValue(0);
+        s.setValue(value);
         s.setMajorTickUnit(Math.max(1, n - 1));
         s.setBlockIncrement(1);
         s.setDisable(n < 2);
@@ -468,6 +501,9 @@ public final class MainWindow extends BorderPane {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
         Node[] range = {new Label("Range"), minField, new Label("to"), maxField, auto, sym};
+        for (Node n : new Node[] {palette, reverse, minField, maxField, auto, sym, mask, fit, export}) {
+            n.disableProperty().bind(session.variableProperty().isNull());
+        }
         ToolBar bar = new ToolBar(open, url, new Separator(), palette, reverse);
         bar.getItems().addAll(range);
         bar.getItems().addAll(mask, spacer, fit, export);
@@ -488,7 +524,12 @@ public final class MainWindow extends BorderPane {
         variables.setCellFactory(l -> new VariableCell());
         variables.getSelectionModel().selectedItemProperty().addListener((o, a, v) -> {
             if (v != null && v != session.variable()) {
-                session.show(v);
+                // Negative indices count from the end: -1 is the latest time step.
+                int t = initialTime < 0 ? v.times() + initialTime : initialTime;
+                int z = initialLevel < 0 ? v.levels() + initialLevel : initialLevel;
+                session.show(v, t, z);
+                initialTime = 0;
+                initialLevel = 0;
             }
         });
         VBox.setVgrow(variables, Priority.ALWAYS);
@@ -544,7 +585,9 @@ public final class MainWindow extends BorderPane {
         url.getStyleClass().add("big");
         HBox buttons = new HBox(10, open, url);
         buttons.setAlignment(Pos.CENTER);
-        welcome.getChildren().addAll(name, sub, buttons);
+        Hyperlink sample = new Hyperlink("No file at hand? Try 21 TB of daily sea surface temperature at 1 km (NASA MUR, remote)");
+        sample.setOnAction(e -> open(SAMPLE_URL, "analysed_sst", -1, 0));
+        welcome.getChildren().addAll(name, sub, buttons, sample);
         List<String> recent = recentFiles();
         if (!recent.isEmpty()) {
             Label r = new Label("RECENT");
@@ -628,7 +671,9 @@ public final class MainWindow extends BorderPane {
         fileInfo.getStyleClass().add("status-file");
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox bar = new HBox(14, cursor, spacer, busy, read, new Separator(javafx.geometry.Orientation.VERTICAL), fileInfo);
+        Separator sep = new Separator(javafx.geometry.Orientation.VERTICAL);
+        sep.visibleProperty().bind(fileInfo.textProperty().isNotEmpty());
+        HBox bar = new HBox(14, cursor, spacer, busy, read, sep, fileInfo);
         bar.setAlignment(Pos.CENTER_LEFT);
         bar.getStyleClass().add("status-bar");
         return bar;

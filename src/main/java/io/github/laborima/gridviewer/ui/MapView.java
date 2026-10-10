@@ -279,9 +279,9 @@ public final class MapView extends Region {
                 && covers(detail.slice().request().window(), visible)) {
             return;
         }
-        // Read a margin of half a screen around the view so that small pans cost nothing.
-        int mi = visible.width() / 2;
-        int mj = visible.height() / 2;
+        // Read a margin of a quarter screen around the view so that small pans cost nothing.
+        int mi = visible.width() / 4;
+        int mj = visible.height() / 4;
         Window window = new Window(visible.i0() - mi, visible.j0() - mj, visible.i1() + mi, visible.j1() + mj)
                 .clamp(v.nx(), v.ny()).alignTo(stride);
         SliceRequest r = new SliceRequest(v.name(), baseRequest.time(), baseRequest.level(), window, stride);
@@ -336,7 +336,8 @@ public final class MapView extends Region {
     }
 
     private void updatePending() {
-        session.pendingReadsProperty().set((baseLoading ? 1 : 0) + (detailLoading ? 1 : 0));
+        session.loading("map-base", baseLoading);
+        session.loading("map-detail", detailLoading);
     }
 
     private double outputScale() {
@@ -632,7 +633,7 @@ public final class MapView extends Region {
             gc.setStroke(Color.web("#ffffff", 0.10));
             gc.strokeLine(sx, top, sx, bottom);
             gc.setTextAlign(TextAlignment.CENTER);
-            Painting.haloText(gc, Painting.lon(lon).replace(".00", ""), sx, top + 6);
+            Painting.haloText(gc, Painting.lon(lon), sx, top + 6);
         }
         Axis y = v.yAxis();
         double latSpan = Math.abs(y.value(vis.j1()) - y.value(vis.j0()));
@@ -648,7 +649,7 @@ public final class MapView extends Region {
             double sy = Math.round(screenY(fj + 0.5)) + 0.5;
             gc.setStroke(Color.web("#ffffff", 0.10));
             gc.strokeLine(left, sy, right, sy);
-            Painting.haloText(gc, Painting.lat(lat).replace(".00", ""), left + 6, sy);
+            Painting.haloText(gc, Painting.lat(lat), left + 6, sy);
         }
         gc.setTextBaseline(VPos.BASELINE);
     }

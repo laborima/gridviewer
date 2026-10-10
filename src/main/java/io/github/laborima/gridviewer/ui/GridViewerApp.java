@@ -61,15 +61,30 @@ public final class GridViewerApp extends Application {
         stage.setMinHeight(600);
         stage.show();
 
-        if (!args.positionals().isEmpty()) {
+        if (args.positionals().isEmpty() && args.has("screenshot")) {
+            PauseTransition shot = new PauseTransition(Duration.millis(1500));
+            shot.setOnFinished(e -> capture(stage, Path.of(args.get("screenshot", "screenshot.png"))));
+            shot.play();
+        } else if (!args.positionals().isEmpty()) {
             window.setOnFirstImage(w -> applyOptions(w, args, stage));
-            window.open(args.positionals().getFirst(), args.get("var", null));
+            window.open(args.positionals().getFirst(), args.get("var", null), args.getInt("time", 0),
+                    args.getInt("level", 0));
         }
     }
 
     @Override
     public void stop() {
         System.exit(0);
+    }
+
+    private static void capture(Stage stage, Path out) {
+        try {
+            MainWindow.writePng(stage.getScene().snapshot(null), out);
+            System.out.println("Screenshot written to " + out);
+        } catch (Exception ex) {
+            System.err.println("Screenshot failed: " + ex.getMessage());
+        }
+        Platform.exit();
     }
 
     private static void applyOptions(MainWindow w, Args args, Stage stage) {
@@ -81,8 +96,6 @@ public final class GridViewerApp extends Application {
             String[] r = args.get("range", "0:1").split(":");
             s.rangeProperty().set(new ValueRange(Double.parseDouble(r[0]), Double.parseDouble(r[1])));
         }
-        s.levelProperty().set(args.getInt("level", 0));
-        s.timeProperty().set(args.getInt("time", 0));
         if (args.has("window")) {
             String[] p = args.get("window", "").split(",");
             w.map().showWindow(new Window(Integer.parseInt(p[0]), Integer.parseInt(p[1]),
@@ -105,17 +118,13 @@ public final class GridViewerApp extends Application {
         }
         if (args.has("screenshot")) {
             Path out = Path.of(args.get("screenshot", "screenshot.png"));
-            PauseTransition settle = new PauseTransition(Duration.millis(Double.parseDouble(args.get("delay", "3000"))));
-            settle.setOnFinished(e -> {
-                try {
-                    MainWindow.writePng(stage.getScene().snapshot(null), out);
-                    System.out.println("Screenshot written to " + out);
-                } catch (Exception ex) {
-                    System.err.println("Screenshot failed: " + ex.getMessage());
-                }
-                Platform.exit();
-            });
-            settle.play();
+            PauseTransition settle = new PauseTransition(Duration.millis(Double.parseDouble(args.get("delay", "1500"))));
+            settle.setOnFinished(e -> capture(stage, out));
+            // Let the views ask for their data, wait for every read, then give the globe and
+            // section (not counted as pending reads) a moment.
+            PauseTransition start = new PauseTransition(Duration.millis(300));
+            start.setOnFinished(e -> w.whenIdle(settle::play));
+            start.play();
         }
     }
 }

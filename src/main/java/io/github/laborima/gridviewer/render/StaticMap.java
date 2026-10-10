@@ -6,7 +6,6 @@ import java.awt.Font;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
-import java.util.Locale;
 
 import io.github.laborima.gridviewer.data.GridVariable;
 import io.github.laborima.gridviewer.data.Slice;
@@ -75,19 +74,10 @@ public final class StaticMap {
         g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 12));
         for (int k = 0; k <= 4; k++) {
             double v = range.min() + k * (range.max() - range.min()) / 4;
-            String s = format(v);
+            String s = Formats.tick(v);
             int x = barX + k * (barW - 1) / 4 - g.getFontMetrics().stringWidth(s) / 2;
             x = Math.clamp(x, barX, barX + barW - g.getFontMetrics().stringWidth(s));
             g.drawString(s, x, barY + 34);
         }
-    }
-
-    static String format(double v) {
-        double a = Math.abs(v);
-        if (a != 0 && (a < 0.01 || a >= 1e5)) {
-            return String.format(Locale.ROOT, "%.2e", v);
-        }
-        String s = String.format(Locale.ROOT, a >= 100 ? "%.0f" : a >= 10 ? "%.1f" : "%.2f", v);
-        return s.equals("-0") || s.equals("-0.0") || s.equals("-0.00") ? s.substring(1) : s;
     }
 }

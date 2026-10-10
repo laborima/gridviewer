@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import ucar.httpservices.HTTPSession;
 import ucar.nc2.Variable;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.dataset.NetcdfDatasets;
@@ -20,6 +21,13 @@ import ucar.nc2.dataset.NetcdfDatasets;
  * netCDF-Java files are not thread safe.
  */
 public final class GridDataset implements AutoCloseable {
+
+    static {
+        // Remote datasets: fail instead of hanging forever on a silent server.
+        HTTPSession.setGlobalConnectionTimeout(20_000);
+        HTTPSession.setGlobalSoTimeout(120_000);
+        HTTPSession.setGlobalRetryCount(2);
+    }
 
     private final String location;
     private final NetcdfDataset dataset;

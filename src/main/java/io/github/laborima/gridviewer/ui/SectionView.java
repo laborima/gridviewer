@@ -104,6 +104,7 @@ public final class SectionView extends Region {
         if (loader != null) {
             loader.cancel();
         }
+        session.loading("section", false);
         section = null;
         image = null;
         loader = ds == null ? null : new LatestOnly<>(ds, r -> r.variable().readSection(r.request()), Platform::runLater);
@@ -129,11 +130,14 @@ public final class SectionView extends Region {
         from -= Math.floorMod(from, stride);
         SectionRequest r = new SectionRequest(v.name(), session.timeProperty().get(), line.orientation(),
                 line.index(), from, to, stride);
+        session.loading("section", true);
         loader.request(new Read(v, r), s -> {
+            session.loading("section", false);
             shownVariable = v;
             section = s;
             recolor();
         }, e -> {
+            session.loading("section", false);
             section = null;
             image = null;
             session.readInfoProperty().set("Section failed: " + e.getMessage());
@@ -326,7 +330,8 @@ public final class SectionView extends Region {
             } else {
                 label = (alongRow ? "i " : "j ") + idx;
             }
-            gc.fillText(label, x, TOP + ph + 6);
+            gc.setTextAlign(t == 0 ? TextAlignment.LEFT : t == ticks ? TextAlignment.RIGHT : TextAlignment.CENTER);
+            gc.fillText(label, t == 0 ? LEFT : t == ticks ? LEFT + pw : x, TOP + ph + 6);
             gc.setStroke(Color.web("#ffffff", 0.3));
             gc.strokeLine(Math.round(x) + 0.5, TOP + ph + 1, Math.round(x) + 0.5, TOP + ph + 4);
         }

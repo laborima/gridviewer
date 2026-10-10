@@ -1,6 +1,5 @@
 package io.github.laborima.gridviewer.ui;
 
-import java.util.Locale;
 import javafx.geometry.VPos;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.PixelFormat;
@@ -12,6 +11,7 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 
 import io.github.laborima.gridviewer.render.ColorMap;
+import io.github.laborima.gridviewer.render.Formats;
 import io.github.laborima.gridviewer.render.ValueRange;
 
 /**
@@ -109,43 +109,23 @@ final class Painting {
     }
 
     static String format(double v) {
-        double a = Math.abs(v);
-        if (a != 0 && (a < 0.01 || a >= 1e5)) {
-            return String.format(Locale.ROOT, "%.2e", v);
-        }
-        String s = String.format(Locale.ROOT, a >= 100 ? "%.0f" : a >= 10 ? "%.1f" : "%.2f", v);
-        return s.matches("-0(\\.0+)?") ? s.substring(1) : s;
+        return Formats.tick(v);
     }
 
-    /** Value with up to 4 significant digits, for read-outs. */
     static String value(double v) {
-        if (Double.isNaN(v)) {
-            return "—";
-        }
-        double a = Math.abs(v);
-        if (a != 0 && (a < 1e-3 || a >= 1e6)) {
-            return String.format(Locale.ROOT, "%.3e", v);
-        }
-        return String.format(Locale.ROOT, "%.4g", v).replaceAll("(\\.\\d*?)0+$", "$1").replaceAll("\\.$", "");
+        return Formats.value(v);
     }
 
     static String lon(double lon) {
-        double l = ((lon + 180) % 360 + 360) % 360 - 180;
-        return String.format(Locale.ROOT, "%.2f°%s", Math.abs(l), l < 0 ? "W" : "E");
+        return Formats.lon(lon);
     }
 
     static String lat(double lat) {
-        return String.format(Locale.ROOT, "%.2f°%s", Math.abs(lat), lat < 0 ? "S" : "N");
+        return Formats.lat(lat);
     }
 
     static String bytes(long b) {
-        if (b < 1 << 20) {
-            return String.format(Locale.ROOT, "%.0f kB", Math.ceil(b / 1024.0));
-        }
-        if (b < 1L << 30) {
-            return String.format(Locale.ROOT, "%.1f MB", b / (1024.0 * 1024));
-        }
-        return String.format(Locale.ROOT, "%.2f GB", b / (1024.0 * 1024 * 1024));
+        return Formats.bytes(b);
     }
 
     /** Fractional index of {@code v} in a monotonic array, or NaN when outside. */

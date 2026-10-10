@@ -103,8 +103,10 @@ public final class GridVariable {
         return s == null ? name() : s;
     }
 
+    /** Units, or an empty string when missing or dimensionless ("1"). */
     public String units() {
-        return unitsOf(variable);
+        String u = unitsOf(variable);
+        return u.equals("1") ? "" : u;
     }
 
     public int[] shape() {

@@ -43,8 +43,8 @@ public final class GlobeView extends Region {
     private record Field(GridVariable variable, Slice slice, float[][] lonLat) {
     }
 
-    private static final int TEXTURE_WIDTH = 4096;
-    private static final int TEXTURE_HEIGHT = 2048;
+    private static final int TEXTURE_WIDTH = 2048;
+    private static final int TEXTURE_HEIGHT = 1024;
 
     private final Session session;
     private final Sphere sphere = new Sphere(1, 256);
@@ -209,6 +209,7 @@ public final class GlobeView extends Region {
         if (loader != null) {
             loader.cancel();
         }
+        session.loading("globe", false);
         field = null;
         dirty = true;
         material.setDiffuseMap(null);
@@ -234,10 +235,15 @@ public final class GlobeView extends Region {
         int stride = Stride.forWindow(full, TEXTURE_WIDTH, TEXTURE_HEIGHT);
         SliceRequest r = new SliceRequest(v.name(), session.timeProperty().get(), session.levelProperty().get(),
                 full, stride);
+        session.loading("globe", true);
         loader.request(new Read(v, r), f -> {
+            session.loading("globe", false);
             field = f;
             recolor();
-        }, e -> session.readInfoProperty().set("Globe read failed: " + e.getMessage()));
+        }, e -> {
+            session.loading("globe", false);
+            session.readInfoProperty().set("Globe read failed: " + e.getMessage());
+        });
     }
 
     private void recolor() {
