@@ -8,6 +8,7 @@
 # Output goes to dist/. Requires JDK 25 (jlink, jpackage) on PATH or JAVA_HOME; rpm needs
 # rpmbuild, msi needs WiX.
 set -euo pipefail
+# Works with the bash 3.2 of macOS: empty arrays are expanded as ${A[@]+"${A[@]}"}.
 # A preloaded library would leak into the computed package dependencies.
 unset LD_PRELOAD
 
@@ -129,7 +130,7 @@ for TYPE in "${TYPES[@]}"; do
       # Library-level requirements work across Fedora, RHEL and openSUSE package names.
       EXTRA=(--linux-package-deps "libgtk-3.so.0()(64bit), libGL.so.1()(64bit), libasound.so.2()(64bit), libXtst.so.6()(64bit), xdg-utils")
     fi
-    jpackage --type "$TYPE" --name "$NAME" "${COMMON[@]}" "${PLATFORM[@]}" "${INSTALLER[@]}" "${EXTRA[@]}" \
+    jpackage --type "$TYPE" --name "$NAME" "${COMMON[@]}" "${PLATFORM[@]}" "${INSTALLER[@]}" ${EXTRA[@]+"${EXTRA[@]}"} \
       --license-file LICENSE
   fi
 done

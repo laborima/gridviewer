@@ -110,16 +110,17 @@ jobs:
       - name: Version-free copies, for stable "latest" download links
         run: |
           cd dist
-          cp_if() { for f in $1; do [ -e "$f" ] && cp "$f" "$2"; done; return 0; }
-          cp_if 'gridviewer_*_amd64.deb' gridviewer_amd64.deb
-          cp_if 'gridviewer-*.x86_64.rpm' gridviewer.x86_64.rpm
-          cp_if 'GridViewer-*-x86_64.AppImage' GridViewer-x86_64.AppImage
-          cp_if 'gridviewer_*_amd64.snap' gridviewer_amd64.snap
-          cp_if 'gridviewer-*-linux-x64.tar.gz' gridviewer-linux-x64.tar.gz
-          cp_if 'Grid Viewer-*.msi' GridViewer-windows-x64.msi
-          cp_if 'gridviewer-*-windows-x64.zip' gridviewer-windows-x64.zip
-          cp_if 'Grid Viewer-*-aarch64.dmg' GridViewer-macos-aarch64.dmg
-          cp_if 'Grid Viewer-*-x64.dmg' GridViewer-macos-x64.dmg
+          shopt -s nullglob
+          copy() { local src=("$@"); local dst=${src[-1]}; unset 'src[-1]'; for f in "${src[@]}"; do cp "$f" "$dst"; done; }
+          copy gridviewer_*_amd64.deb gridviewer_amd64.deb
+          copy gridviewer-*.x86_64.rpm gridviewer.x86_64.rpm
+          copy GridViewer-*-x86_64.AppImage GridViewer-x86_64.AppImage
+          copy gridviewer_*_amd64.snap gridviewer_amd64.snap
+          copy gridviewer-*-linux-x64.tar.gz gridviewer-linux-x64.tar.gz
+          copy "Grid Viewer-"*.msi GridViewer-windows-x64.msi
+          copy gridviewer-*-windows-x64.zip gridviewer-windows-x64.zip
+          copy "Grid Viewer-"*-aarch64.dmg GridViewer-macos-aarch64.dmg
+          copy "Grid Viewer-"*-x64.dmg GridViewer-macos-x64.dmg
           ls -la
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt
