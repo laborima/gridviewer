@@ -20,7 +20,7 @@ jobs:
           java-version: '25'
           cache: maven
       - name: Install rpmbuild
-        run: sudo apt-get update && sudo apt-get install -y rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot
       - name: Archive, deb and rpm
         run: packaging/package.sh archive deb rpm
       - name: AppImage
@@ -78,7 +78,7 @@ jobs:
   macos:
     strategy:
       matrix:
-        runner: [macos-14, macos-13]
+        runner: [macos-15, macos-15-intel]
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
@@ -100,12 +100,27 @@ jobs:
   publish:
     needs: [linux, snap, windows, macos]
     runs-on: ubuntu-24.04
-    if: startsWith(github.ref, 'refs/tags/')
+    # Publish whatever was built, even if one platform failed.
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/') }}
     steps:
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Version-free copies, for stable "latest" download links
+        run: |
+          cd dist
+          cp_if() { for f in $1; do [ -e "$f" ] && cp "$f" "$2"; done; return 0; }
+          cp_if 'gridviewer_*_amd64.deb' gridviewer_amd64.deb
+          cp_if 'gridviewer-*.x86_64.rpm' gridviewer.x86_64.rpm
+          cp_if 'GridViewer-*-x86_64.AppImage' GridViewer-x86_64.AppImage
+          cp_if 'gridviewer_*_amd64.snap' gridviewer_amd64.snap
+          cp_if 'gridviewer-*-linux-x64.tar.gz' gridviewer-linux-x64.tar.gz
+          cp_if 'Grid Viewer-*.msi' GridViewer-windows-x64.msi
+          cp_if 'gridviewer-*-windows-x64.zip' gridviewer-windows-x64.zip
+          cp_if 'Grid Viewer-*-aarch64.dmg' GridViewer-macos-aarch64.dmg
+          cp_if 'Grid Viewer-*-x64.dmg' GridViewer-macos-x64.dmg
+          ls -la
       - name: Checksums
         run: cd dist && sha256sum * > SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2

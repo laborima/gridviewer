@@ -85,22 +85,66 @@ scratch for Java 25, with the same trick at its heart.
 
 ## Install
 
-Download the package for your system from the
-[latest release](https://github.com/laborima/gridviewer/releases/latest). Every package ships its
-own Java runtime: **nothing else to install**.
+Every package ships its own Java runtime: **nothing else to install**. All of them are attached
+to each [GitHub release](https://github.com/laborima/gridviewer/releases/latest); the commands
+below always fetch the latest one.
 
-| System | Package | Install |
-|---|---|---|
-| Debian, Ubuntu, Mint | `gridviewer_2.0.0_amd64.deb` | `sudo apt install ./gridviewer_2.0.0_amd64.deb` |
-| Fedora, RHEL, openSUSE | `gridviewer-2.0.0-1.x86_64.rpm` | `sudo dnf install ./gridviewer-2.0.0-1.x86_64.rpm` |
-| Any Linux, one file | `GridViewer-2.0.0-x86_64.AppImage` | `chmod +x GridViewer-*.AppImage` and run it |
-| Any Linux, snap | `gridviewer_2.0.0_amd64.snap` | `sudo snap install --dangerous gridviewer_2.0.0_amd64.snap` |
-| Any Linux, no root | `gridviewer-2.0.0-linux-x64.tar.gz` | extract, run `bin/gridviewer` |
-| Windows 10/11 | `Grid Viewer-2.0.0.msi` | double-click; or unzip `gridviewer-2.0.0-windows-x64.zip` |
-| macOS (Apple silicon / Intel) | `Grid Viewer-2.0.0-aarch64.dmg` / `-x64.dmg` | open, drag to Applications |
+### Debian, Ubuntu, Linux Mint
 
-The deb and rpm packages add Grid Viewer to the application menu and open `.nc` files on double-click.
-The macOS builds are not notarised yet: the first time, right-click the app and choose *Open*.
+```sh
+curl -LO https://github.com/laborima/gridviewer/releases/latest/download/gridviewer_amd64.deb
+sudo apt install ./gridviewer_amd64.deb
+```
+
+### Fedora, RHEL, Rocky, openSUSE
+
+```sh
+sudo dnf install https://github.com/laborima/gridviewer/releases/latest/download/gridviewer.x86_64.rpm
+# openSUSE: sudo zypper install https://github.com/laborima/gridviewer/releases/latest/download/gridviewer.x86_64.rpm
+```
+
+### Snap (any distribution)
+
+```sh
+curl -LO https://github.com/laborima/gridviewer/releases/latest/download/gridviewer_amd64.snap
+sudo snap install --dangerous ./gridviewer_amd64.snap
+```
+
+`--dangerous` is needed because the snap comes from GitHub rather than the Snap Store.
+
+### AppImage (any distribution, one file, no root)
+
+```sh
+curl -LO https://github.com/laborima/gridviewer/releases/latest/download/GridViewer-x86_64.AppImage
+chmod +x GridViewer-x86_64.AppImage
+./GridViewer-x86_64.AppImage
+```
+
+### Plain archive (any distribution, no root)
+
+```sh
+curl -L https://github.com/laborima/gridviewer/releases/latest/download/gridviewer-linux-x64.tar.gz | tar xz
+./gridviewer-*-linux-x64/bin/gridviewer
+```
+
+### Windows 10 and 11
+
+Download and run
+[GridViewer-windows-x64.msi](https://github.com/laborima/gridviewer/releases/latest/download/GridViewer-windows-x64.msi),
+or unzip [gridviewer-windows-x64.zip](https://github.com/laborima/gridviewer/releases/latest/download/gridviewer-windows-x64.zip)
+anywhere and run `Grid Viewer.exe`. Use `gridviewer-cli.exe` for the command line.
+
+### macOS
+
+Download the disk image for
+[Apple silicon](https://github.com/laborima/gridviewer/releases/latest/download/GridViewer-macos-aarch64.dmg) or
+[Intel](https://github.com/laborima/gridviewer/releases/latest/download/GridViewer-macos-x64.dmg),
+open it and drag Grid Viewer to Applications. The app is not notarised yet: the first time,
+right-click it and choose *Open*.
+
+The deb, rpm and snap add Grid Viewer to the application menu and open `.nc` files on
+double-click. Each release also lists the files with their version number and a
+`SHA256SUMS.txt` to check the downloads.
 
 ## Quick start
 
